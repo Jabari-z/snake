@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>贪吃蛇</title>
+</head>
+<body>
+    <center>
+    <h1>贪吃蛇</h1>
+    <div id="score">0</div>
+    <div><button type="submit" id="btn_submit"> 开始游戏 </button></div>
+    <br>
+    <canvas id="gameCanvas" width="300" height="300"></canvas>
+    <p>点击开始游戏 <br> 上下左右键控制🐍的方向</p>
+    <style>  
+        #score {
+            font-size:100px; 
+            font-family: 'Antic Slab', serif
+        }        
+    </style>
+    <script>
+        // 常量
+        const CANVAS_BORDER_COLOUR = 'black';            
+        const CANVAS_BACKGROUND_COLOUR = "white";            
+        // 获取 canvas 元素
+        var gameCanvas = document.getElementById("gameCanvas");            
+        // 返回一个二维绘图上下文 
+        var ctx = gameCanvas.getContext("2d");            
+        // 选择画布的背景颜色
+        ctx.fillStyle = CANVAS_BACKGROUND_COLOUR;            
+        // 选择画布的边框颜色
+        ctx.strokestyle = CANVAS_BORDER_COLOUR;            
+        // 绘制一个“实心的”长方形来覆盖整个画布
+        ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);           
+        // 绘制画布的“边框”
+        ctx.strokeRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+        //注意蛇所有部位的 y 坐标都是 150。
+        //每一部位的 x 坐标比（左边）前一个部位多 10 px -> 移速 否则 脱节了
+        //数组中的第一对坐标 {x: 150, y: 150} 表示蛇头，
+        let snake =[
+            {x : 150, y : 150},  // 头
+            {x : 140, y : 150},
+            {x : 130, y : 150},
+            {x : 120, y : 150},
+            {x : 110, y : 150},
+        ];
+        // changingDirection 为 true 时表示蛇正在改变方向
+        let changingDirection = false;  
+        // 横纵向移动速度
+        let dx = 10;
+        let dy = 0;
+        // 食物坐标
+        let foodX;
+        let foodY;
+        //玩家分数
+        let score = 0;
+        // createFood();
+        // main();
+        // document.addEventListener("keydown", changeDirection);
+        // 游戏开始按钮事件绑定
+        document.getElementById("btn_submit").onclick=start;
+       
+
+        //在画布上画蛇的一个部分
+        function drawSnakePart(snakePart){
+            ctx.fillStyle = 'lightgreen';
+            ctx.strokeStyle = 'darkgreen';
+            ctx.fillRect(snakePart.x,snakePart.y,10,10);
+            ctx.strokeRect(snakePart.x,snakePart.y,10,10);
+        }
+
+        //画蛇
+        function drawSnake(){
+            // snake的每一部分通过foreach draw
+            snake.forEach(drawSnakePart);
+        }
+
+        
+        //根据蛇的水平移动速度改变蛇的 x 坐标，
+        //根据蛇的垂直移动速度改变蛇的 y 坐标
+        function advanceSnake(){
+            const head = {
+                x:snake[0].x+dx,
+                y:snake[0].y+dy
+            };
+            snake.unshift(head); //加一个
+            //是否吃了食物
+            const didEatFood = snake[0].x===foodX && snake[0].y===foodY;
+            if(didEatFood){
+                score += 10;
+                console.log(score);
+                document.getElementById('score').innerHTML = score;
+                createFood()
+            }else{
+                snake.pop(); //减一个
+            }
+      }
+
+        //清空屏幕
+        function clearCanvas(){
+            ctx.fillStyle = "white";
+            ctx.strokeStyle = "black";
+            ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+            ctx.strokeRect(0,0,gameCanvas.width,gameCanvas.height);
+        }
+
+        function main() {
+            if (didGameEnd()) {
+                console.log("游戏结束");
+                alert("GAME OVER"); 
+                return;
+            }
+            setTimeout(function onTick() {
+                //只有在改变方向为false
+                changingDirection = false;
+                clearCanvas();
+                drawFood();
+                advanceSnake();
+                drawSnake();  
+                // 再次调用 main 函数 套娃
+                main();
+            }, 100)
+        }
+
+        //按键事件 改变方向
+        function changeDirection(event){
+            const LEFT_KEY = 37;
+            const RIGHT_KEY = 39;
+            const UP_KEY = 38;
+            const DOWN_KEY = 40;
+
+            // 如果正在改变方向 返回
+            if (changingDirection) return;
+            // 准备改变方向
+            changingDirection = true;
+            const keyPressed = event.keyCode;
+            const goingUp = dy === -10;
+            const goingDown = dy === 10;
+            const goingRight = dx === 10;
+            const goingLeft = dx === -10;    
+            if (keyPressed === LEFT_KEY && !goingRight) {        
+                dx = -10;        
+                dy = 0;
+            }  
+            if (keyPressed === UP_KEY && !goingDown) {        
+                dx = 0;        
+                dy = -10;
+            }  
+            if (keyPressed === RIGHT_KEY && !goingLeft) {        
+                dx = 10;        
+                dy = 0;
+            }  
+            if (keyPressed === DOWN_KEY && !goingUp) {        
+                dx = 0;        
+                dy = 10;
+            }
+
+        }
+
+        // 随机数
+        function randomTen(min,max){
+            return Math.round((Math.random() * (max-min) + min) / 10) * 10;
+        }
+        function createFood(){
+            // 随机位置
+            foodX = randomTen(0,gameCanvas.width-10);
+            foodY = randomTen(0,gameCanvas.height-10);
+            // 不能与🐍身体重合
+            snake.forEach(function isFoodOnSnake(part){
+                const foodIsOnSnake = part.x == foodX && part.y == foodY;
+                if (foodIsOnSnake) createFood();
+            });
+        }
+        function drawFood(){
+            ctx.fillStyle = 'red';
+            ctx.strokestyle = 'darkred';
+            ctx.fillRect(foodX, foodY, 10, 10);
+            ctx.strokeRect(foodX, foodY, 10, 10);
+            
+        }
+        // 游戏结束判定
+        function didGameEnd(){
+            // 头撞到身体
+            for (let i = 4; i < snake.length; i++) {          
+                const didCollide = snake[i].x === snake[0].x && snake[i].y === snake[0].y;
+                if (didCollide) return true;
+            }
+            // 碰到边缘
+            const hitLeftWall = snake[0].x < 0;    
+            const hitRightWall = snake[0].x > gameCanvas.width - 10;    
+            const hitToptWall = snake[0].y < 0;    
+            const hitBottomWall = snake[0].y > gameCanvas.height - 10;   
+            
+            return hitLeftWall || hitRightWall || hitToptWall ||hitBottomWall;
+        }
+
+        function start(){
+            console.log("游戏开始  ->  ");
+            createFood();
+            main();
+            document.addEventListener("keydown", changeDirection);
+        }
+
+    </script>
+    </center>
+
+</body>
+</html>
